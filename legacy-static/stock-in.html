@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profiling (Stock-in) - UEP Clonal</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            display: flex;
+            height: 100vh;
+            background-color: #8fa0b5;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 260px;
+            background-color: #215937;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px 14px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 10px 22px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            margin-bottom: 15px;
+        }
+
+        .logo-img-sidebar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+            background-color: #ffffff;
+        }
+
+        .logo-text h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .logo-text p {
+            font-size: 0.65rem;
+            color: #d1e7dd;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 11px 16px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.88rem;
+            border-radius: 8px;
+            transition: 0.2s ease;
+        }
+
+        .nav-item svg {
+            width: 19px;
+            height: 19px;
+            stroke: #ffffff;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            flex-shrink: 0;
+            opacity: 0.9;
+        }
+
+        .nav-item:hover {
+            background-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .nav-item:hover svg {
+            opacity: 1;
+        }
+
+        .nav-item.active {
+            background-color: rgba(0, 0, 0, 0.28);
+            font-weight: 700;
+        }
+
+        .sidebar-footer {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 10px 5px;
+            align-items: center;
+        }
+
+        .support-link {
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            opacity: 0.9;
+            width: 100%;
+            transition: 0.2s;
+        }
+
+        .support-link:hover {
+            opacity: 1;
+        }
+
+        .support-link svg {
+            width: 18px;
+            height: 18px;
+            stroke: #ffffff;
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .logout-btn {
+            background-color: #d93829;
+            color: white;
+            padding: 11px 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-weight: 600;
+            width: 100%;
+            transition: 0.2s;
+        }
+
+        .logout-btn:hover {
+            background-color: #b72618;
+        }
+
+        .logout-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: #ffffff;
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .topbar {
+            height: 65px;
+            background-color: #ffffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 40px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+        }
+
+        .topbar-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #2b2b2b;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background-color: #edf2f7;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-avatar svg {
+            width: 19px;
+            height: 19px;
+            stroke: #4a5568;
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .form-area {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+        }
+
+        .stockin-card {
+            background-color: #ffffff;
+            width: 100%;
+            max-width: 480px;
+            border-radius: 14px;
+            padding: 35px 40px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .stockin-card h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #2b2b2b;
+            margin-bottom: 22px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: #555555;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .form-group input, 
+        .form-group select {
+            width: 100%;
+            padding: 11px 14px;
+            font-size: 0.9rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            background-color: #ffffff;
+            outline: none;
+            color: #222;
+        }
+
+        .form-group input:focus, 
+        .form-group select:focus {
+            border-color: #215937;
+        }
+
+        .btn-confirm {
+            width: 100%;
+            padding: 13px;
+            background-color: #218838;
+            color: white;
+            font-size: 0.95rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: 0.2s;
+        }
+
+        .btn-confirm:hover {
+            background-color: #1e7e34;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div>
+            <div class="sidebar-logo">
+                <img src="logo.png" alt="Logo" class="logo-img-sidebar" onerror="this.src='https://cdn-icons-png.flaticon.com/512/628/628283.png'">
+                <div class="logo-text">
+                    <h3>UEP Clonal</h3>
+                    <p>Seedling Management</p>
+                </div>
+            </div>
+
+            <nav class="nav-links">
+                <a href="dashboard.html" class="nav-item">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                    Live Dashboard
+                </a>
+
+                <a href="stock-in.html" class="nav-item active">
+                    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Stock-In
+                </a>
+
+                <a href="#" class="nav-item">
+                    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    Stock-Out
+                </a>
+
+                <a href="#" class="nav-item">
+                    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                    Seedling Request
+                </a>
+
+                <a href="#" class="nav-item">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    Transaction History
+                </a>
+
+                <a href="#" class="nav-item">
+                    <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                    QR Tagging Station
+                </a>
+
+                <a href="#" class="nav-item">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    My Settings & Profile
+                </a>
+
+                <!-- Admin only nav item -->
+                <a href="#" class="nav-item" id="adminStaffNav">
+                    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    Manage Staff Accounts
+                </a>
+            </nav>
+        </div>
+
+        <div class="sidebar-footer">
+            <a href="#" class="support-link">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                Support
+            </a>
+            <a href="index.html" class="logout-btn" onclick="logout()">
+                <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                Log Out
+            </a>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="topbar">
+            <div class="topbar-title">Profiling (Stock-in)</div>
+            <div class="user-profile">
+                <div class="user-avatar">
+                    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                </div>
+                <span id="role-display">Staff</span>
+            </div>
+        </div>
+
+        <div class="form-area">
+            <div class="stockin-card">
+                <h3>Stock-In Module</h3>
+
+                <form id="stockInForm">
+                    <div class="form-group">
+                        <label>Species Name</label>
+                        <input type="text" id="species_name" placeholder="e.g. Narra" required autocomplete="off">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="category">
+                            <option value="Hardwood">Hardwood</option>
+                            <option value="Fruit-bearing">Fruit-bearing</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Origin</label>
+                        <input type="text" id="origin" placeholder="e.g. UEP Clonal Core" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Quantity Added</label>
+                        <input type="number" id="quantity" min="1" placeholder="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Date Logged</label>
+                        <input type="date" id="date_logged" required>
+                    </div>
+
+                    <button type="submit" class="btn-confirm">Confirm</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const session = JSON.parse(sessionStorage.getItem("loggedUser")) || { role: "Staff", name: "Patrick Seguros" };
+        document.getElementById("role-display").innerText = session.role;
+
+        // Hide Manage Staff Accounts if role is not Admin
+        if (session.role !== "Admin") {
+            const adminMenu = document.getElementById("adminStaffNav");
+            if (adminMenu) {
+                adminMenu.style.display = "none";
+            }
+        }
+
+        document.getElementById("date_logged").valueAsDate = new Date();
+
+        document.getElementById("stockInForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+
+            const species = document.getElementById("species_name").value.trim();
+            const category = document.getElementById("category").value;
+            const origin = document.getElementById("origin").value.trim();
+            const qty = parseInt(document.getElementById("quantity").value, 10);
+            const dateLogged = document.getElementById("date_logged").value;
+
+            let batches = JSON.parse(localStorage.getItem("uep_batches")) || [];
+            
+            let existing = batches.find(b => b.species_name.toLowerCase() === species.toLowerCase());
+
+            if (existing) {
+                existing.current_stock += qty;
+                existing.initial_stock += qty;
+                alert(`Stock updated successfully.\nBatch: #${existing.batch_id} (${species})\nAdded: +${qty}\nTotal Stock: ${existing.current_stock}`);
+            } else {
+                const nextId = String(batches.length + 1).padStart(3, '0');
+                batches.push({
+                    batch_id: nextId,
+                    species_name: species,
+                    category: category,
+                    origin: origin,
+                    initial_stock: qty,
+                    current_stock: qty,
+                    date_logged: dateLogged
+                });
+                alert(`New batch #${nextId} (${species}) registered successfully.`);
+            }
+
+            localStorage.setItem("uep_batches", JSON.stringify(batches));
+            this.reset();
+            document.getElementById("date_logged").valueAsDate = new Date();
+        });
+
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = "index.html";
+        }
+    </script>
+</body>
+</html>

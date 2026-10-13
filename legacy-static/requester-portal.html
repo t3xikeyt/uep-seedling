@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seedling Request Portal - UEP Clonal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f1f4f8;
+            color: #2d3748;
+        }
+
+        /* Navigation bar */
+        .portal-nav {
+            background-color: #1b4332;
+            color: white;
+            padding: 12px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-brand img {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: white;
+            object-fit: cover;
+        }
+
+        .nav-brand h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 25px;
+        }
+
+        .nav-tab-btn {
+            background: none;
+            border: none;
+            color: #cbd5e0;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 8px 14px;
+            border-radius: 6px;
+            transition: 0.2s;
+        }
+
+        .nav-tab-btn:hover, .nav-tab-btn.active {
+            color: #ffffff;
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 0.9rem;
+        }
+
+        .btn-logout {
+            background-color: #d93829;
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Main layout container */
+        .container {
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .page-header {
+            margin-bottom: 25px;
+        }
+
+        .page-header h1 {
+            font-size: 1.8rem;
+            color: #1b4332;
+            font-weight: 800;
+        }
+
+        .page-header p {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        /* Metric cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 20px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .metric-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .metric-icon.green { background: #e8f5e9; color: #2e7d32; }
+        .metric-icon.orange { background: #fff3e0; color: #e65100; }
+        .metric-icon.blue { background: #e3f2fd; color: #1565c0; }
+
+        .metric-info p {
+            font-size: 0.8rem;
+            color: #718096;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .metric-info h2 {
+            font-size: 1.8rem;
+            color: #2d3748;
+            font-weight: 800;
+        }
+
+        /* Table components */
+        .card-panel {
+            background: white;
+            padding: 25px;
+            border-radius: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            margin-bottom: 30px;
+        }
+
+        .panel-title {
+            font-size: 1.2rem;
+            color: #1b4332;
+            font-weight: 700;
+            margin-bottom: 18px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #edf2f7;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: #4a5568;
+            font-weight: 700;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .badge-available { background: #e8f5e9; color: #2e7d32; }
+        .badge-low { background: #fff3e0; color: #e65100; }
+        .badge-pending { background: #e0f2fe; color: #0369a1; }
+
+        .btn-add-req {
+            background-color: #1b4332;
+            color: white;
+            border: none;
+            padding: 7px 15px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-add-req:hover {
+            background-color: #2d6a4f;
+        }
+
+        /* Form layout */
+        .request-section-grid {
+            display: grid;
+            grid-template-columns: 3fr 2fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #4a5568;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: #2d6a4f;
+        }
+
+        .btn-submit-req {
+            background-color: #2d6a4f;
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: 0.2s;
+        }
+
+        .btn-submit-req:hover {
+            background-color: #1b4332;
+        }
+
+        /* Guidelines section */
+        .rules-card {
+            background: #fbfcfe;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #2d6a4f;
+            padding: 22px;
+            border-radius: 10px;
+        }
+
+        .rules-card h4 {
+            color: #1b4332;
+            font-size: 1.05rem;
+            margin-bottom: 18px;
+            font-weight: 800;
+        }
+
+        .rules-card ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .rules-card li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 0.86rem;
+            line-height: 1.45;
+            color: #4a5568;
+        }
+
+        .rules-card li svg {
+            width: 18px;
+            height: 18px;
+            stroke: #2d6a4f;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .rules-card li strong {
+            color: #1b4332;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header navigation -->
+    <header class="portal-nav">
+        <div class="nav-brand">
+            <img src="logo.png" alt="Logo" onerror="this.src='https://cdn-icons-png.flaticon.com/512/628/628283.png'">
+            <div>
+                <h3>UEP Clonal Nursery</h3>
+            </div>
+        </div>
+
+        <nav class="nav-tabs">
+            <button class="nav-tab-btn active" onclick="switchView('catalog')">Catalog</button>
+            <button class="nav-tab-btn" onclick="switchView('requestForm')">Request Form</button>
+            <button class="nav-tab-btn" onclick="switchView('history')">My Requests</button>
+        </nav>
+
+        <div class="user-section">
+            <span id="userNameDisplay">Requester</span>
+            <button class="btn-logout" onclick="logout()">Log Out</button>
+        </div>
+    </header>
+
+    <div class="container">
+        
+        <div class="page-header">
+            <h1>Public Seedling Request Portal</h1>
+            <p>Request high-quality seedlings directly from the University Clonal Nursery.</p>
+        </div>
+
+        <!-- Inventory summary cards -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-icon green">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                </div>
+                <div class="metric-info">
+                    <p>Available Seedlings</p>
+                    <h2 id="totalAvail">0</h2>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-icon orange">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <div class="metric-info">
+                    <p>Low Stock Species</p>
+                    <h2 id="lowStockCount">0</h2>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-icon blue">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <div class="metric-info">
+                    <p>My Active Requests</p>
+                    <h2 id="myActiveReqCount">0</h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Catalog view panel -->
+        <div class="card-panel" id="viewCatalog">
+            <h3 class="panel-title">Available Seedlings Catalog</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Species Name</th>
+                        <th>Category</th>
+                        <th>Available Stock</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="catalogTableBody"></tbody>
+            </table>
+        </div>
+
+        <!-- Request submission view panel -->
+        <div id="viewRequestForm" style="display: none;">
+            <div class="request-section-grid">
+                <div class="card-panel" style="margin-bottom: 0;">
+                    <h3 class="panel-title">Seedling Request Form</h3>
+                    <form id="requesterSubmissionForm">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="reqFullName" required readonly style="background: #f8fafc;">
+                        </div>
+                        <div class="form-group">
+                            <label>Contact Number</label>
+                            <input type="text" id="reqContact" placeholder="e.g. 09171234567" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Organization / Purpose</label>
+                            <input type="text" id="reqPurpose" placeholder="e.g. Tree Planting Activity / Academic Study" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Target Pickup Date</label>
+                            <input type="date" id="reqPickupDate" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Selected Species</label>
+                            <select id="selectedBatchSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e0; margin-bottom: 10px;">
+                            </select>
+                            <label>Quantity (Max: 500)</label>
+                            <input type="number" id="reqQty" min="1" max="100" value="10" required>
+                        </div>
+
+                        <button type="submit" class="btn-submit-req">Submit Request</button>
+                    </form>
+                </div>
+
+                <!-- Guidelines card -->
+                <div class="rules-card">
+                    <h4>Collection Guidelines & Rules</h4>
+                    <ul>
+                        <li>
+                            <svg viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 4 13C4 7 11 3 11 3s7 4 7 10a7 7 0 0 1-7 7z"></path><path d="M11 20v-9"></path></svg>
+                            <div><strong>Maximum Limit:</strong> Maximum of 500 seedlings per approved request.</div>
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                            <div><strong>Claim Period:</strong> Approved requests must be collected within 5 working days.</div>
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"></rect><circle cx="8" cy="10" r="2"></circle><line x1="14" y1="10" x2="18" y2="10"></line><line x1="14" y1="14" x2="18" y2="14"></line><line x1="6" y1="16" x2="10" y2="16"></line></svg>
+                            <div><strong>Requirements:</strong> Please bring a valid ID upon pickup.</div>
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                            <div><strong>Location:</strong> UEP Clonal Station (8:00 AM – 4:00 PM).</div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Request history view panel -->
+        <div class="card-panel" id="viewHistory">
+            <h3 class="panel-title">My Submitted Requests History</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Req ID</th>
+                        <th>Seedling / Quantity</th>
+                        <th>Purpose</th>
+                        <th>Target Pickup</th>
+                        <th>Date Submitted</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="myRequestsTableBody"></tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        // User session verification
+        const loggedUser = JSON.parse(sessionStorage.getItem("loggedUser"));
+        if (!loggedUser) {
+            window.location.href = "index.html";
+        }
+        document.getElementById("userNameDisplay").innerText = loggedUser.name;
+        document.getElementById("reqFullName").value = loggedUser.name;
+
+        // Default pickup date to next business day
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        document.getElementById("reqPickupDate").valueAsDate = tomorrow;
+
+        // View toggle handler
+        function switchView(tab) {
+            const catalog = document.getElementById("viewCatalog");
+            const form = document.getElementById("viewRequestForm");
+            const history = document.getElementById("viewHistory");
+
+            catalog.style.display = tab === 'catalog' ? 'block' : 'none';
+            form.style.display = tab === 'requestForm' ? 'block' : 'none';
+            history.style.display = tab === 'history' ? 'block' : 'none';
+
+            document.querySelectorAll(".nav-tab-btn").forEach((btn, index) => {
+                btn.classList.toggle("active", 
+                    (tab === 'catalog' && index === 0) || 
+                    (tab === 'requestForm' && index === 1) || 
+                    (tab === 'history' && index === 2)
+                );
+            });
+        }
+
+        // Fetch and display active catalog items
+        function loadPortalData() {
+            const batches = JSON.parse(localStorage.getItem("uep_batches")) || [];
+            const requests = JSON.parse(localStorage.getItem("uep_requests")) || [];
+
+            let totalSeedlings = 0;
+            let lowCount = 0;
+
+            const catalogTbody = document.getElementById("catalogTableBody");
+            const selectDropdown = document.getElementById("selectedBatchSelect");
+            
+            catalogTbody.innerHTML = "";
+            selectDropdown.innerHTML = "";
+
+            batches.forEach(b => {
+                totalSeedlings += Number(b.current_stock);
+                const isLow = Number(b.current_stock) <= 10;
+                if (isLow) lowCount++;
+
+                catalogTbody.innerHTML += `
+                    <tr>
+                        <td><strong>${b.species_name}</strong></td>
+                        <td>${b.category}</td>
+                        <td>${b.current_stock} pcs</td>
+                        <td>
+                            <span class="badge ${isLow ? 'badge-low' : 'badge-available'}">
+                                ${isLow ? 'Low Stock' : 'Available'}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn-add-req" onclick="selectForRequest('${b.batch_id}')">+ Add to Request</button>
+                        </td>
+                    </tr>
+                `;
+
+                selectDropdown.innerHTML += `
+                    <option value="${b.batch_id}">${b.species_name} (${b.category} - ${b.current_stock} available)</option>
+                `;
+            });
+
+            // Filter user requests
+            const myRequests = requests.filter(r => r.requesterEmail === loggedUser.email || r.requesterName === loggedUser.name);
+            const myActive = myRequests.filter(r => r.status === 'Pending').length;
+
+            document.getElementById("totalAvail").innerText = totalSeedlings.toLocaleString();
+            document.getElementById("lowStockCount").innerText = lowCount;
+            document.getElementById("myActiveReqCount").innerText = myActive;
+
+            const historyTbody = document.getElementById("myRequestsTableBody");
+            historyTbody.innerHTML = "";
+
+            if (myRequests.length === 0) {
+                historyTbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #a0aec0;">No requests submitted yet.</td></tr>`;
+            } else {
+                myRequests.forEach(r => {
+                    historyTbody.innerHTML += `
+                        <tr>
+                            <td><strong>#${r.reqId}</strong></td>
+                            <td>${r.speciesName} (${r.qty} pcs)</td>
+                            <td>${r.purpose}</td>
+                            <td>${r.pickupDate}</td>
+                            <td>${r.dateSubmitted}</td>
+                            <td><span class="badge badge-pending">${r.status}</span></td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        function selectForRequest(batchId) {
+            document.getElementById("selectedBatchSelect").value = batchId;
+            switchView('requestForm');
+        }
+
+        // Process request submission
+        document.getElementById("requesterSubmissionForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const contact = document.getElementById("reqContact").value.trim();
+            const purpose = document.getElementById("reqPurpose").value.trim();
+            const pickupDate = document.getElementById("reqPickupDate").value;
+            const batchId = document.getElementById("selectedBatchSelect").value;
+            const qty = parseInt(document.getElementById("reqQty").value, 10);
+
+            const batches = JSON.parse(localStorage.getItem("uep_batches")) || [];
+            const selectedBatch = batches.find(b => b.batch_id === batchId);
+
+            if (qty > selectedBatch.current_stock) {
+                alert(`Requested quantity exceeds available stock (${selectedBatch.current_stock} available).`);
+                return;
+            }
+
+            let requests = JSON.parse(localStorage.getItem("uep_requests")) || [];
+            const newReq = {
+                reqId: "REQ-" + String(requests.length + 1).padStart(3, '0'),
+                requesterName: loggedUser.name,
+                requesterEmail: loggedUser.email,
+                contact: contact,
+                speciesName: selectedBatch.species_name,
+                batchId: batchId,
+                qty: qty,
+                purpose: purpose,
+                pickupDate: pickupDate,
+                dateSubmitted: new Date().toISOString().split("T")[0],
+                status: "Pending"
+            };
+
+            requests.push(newReq);
+            localStorage.setItem("uep_requests", JSON.stringify(requests));
+
+            alert(`Request submitted successfully (Reference: ${newReq.reqId}).`);
+            this.reset();
+            document.getElementById("reqFullName").value = loggedUser.name;
+            loadPortalData();
+            switchView('history');
+        });
+
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = "index.html";
+        }
+
+        loadPortalData();
+    </script>
+</body>
+</html>
