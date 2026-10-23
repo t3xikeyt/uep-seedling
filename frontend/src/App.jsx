@@ -1,12 +1,25 @@
 import { useEffect, useState } from 'react';
 import './styles.css';
-import LiveDashboard from './pages/admin/LiveDashboard';
-import StockIn from './pages/admin/StockIn';
+
+// Admin Modules
+import Sidebar from './pages/Admin/Sidebar';
+import LiveDashboard from './pages/Admin/LiveDashboard';
+import StockIn from './pages/Admin/StockIn';
+import StockOut from './pages/Admin/StockOut';
+import SeedlingRequest from './pages/Admin/SeedlingRequest';
+import TransactionHistory from './pages/Admin/TransactionHistory';
+import QRTaggingStation from './pages/Admin/QRTaggingStation';
+import MySettingsAndProfile from './pages/Admin/MySettingsAndProfile';
+import ManageStaffAccounts from './pages/Admin/ManageStaffAccounts';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+
   const [authMode, setAuthMode] = useState('login');
   const [showAuth, setShowAuth] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -16,15 +29,9 @@ function App() {
     const savedUser = localStorage.getItem('uep_user');
     return savedUser ? JSON.parse(savedUser) : null;
   });
+  const [userAvatar, setUserAvatar] = useState(localStorage.getItem('uep_user_avatar') || null);
 
   const [batches, setBatches] = useState([]);
-  const [loginData, setLoginData] = useState({ usernameOrEmail: '', password: '' });
-  const [registerData, setRegisterData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  });
   const [message, setMessage] = useState({ type: '', text: '' });
   const [loading, setLoading] = useState(false);
 
@@ -41,8 +48,8 @@ function App() {
     setToken('');
     setUser(null);
     setBatches([]);
-    setLoginData({ usernameOrEmail: '', password: '' });
     setShowAuth(false);
+    setIsSidebarOpen(false);
   };
 
   const fetchBatches = async () => {
@@ -66,20 +73,27 @@ function App() {
   const handleLogin = async (event) => {
     event.preventDefault();
     setLoading(true);
+    setMessage({ type: '', text: '' });
+
+    const formData = new FormData(event.currentTarget);
+    const usernameOrEmail = formData.get('usernameOrEmail');
+    const password = formData.get('password');
+
     try {
       const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loginData),
+        body: JSON.stringify({ usernameOrEmail, password }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Login failed.');
+      if (!res.ok) throw new Error(data.message || 'Login failed. Check credentials.');
 
       localStorage.setItem('uep_token', data.token);
       localStorage.setItem('uep_user', JSON.stringify(data.user));
       setToken(data.token);
       setUser(data.user);
+      setMessage({ type: 'success', text: 'Login successful.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message });
     } finally {
@@ -89,20 +103,31 @@ function App() {
 
   const handleRegister = async (event) => {
     event.preventDefault();
-    if (registerData.password !== registerData.confirmPassword) {
+    setMessage({ type: '', text: '' });
+
+    const formData = new FormData(event.currentTarget);
+    const name = formData.get('name');
+    const email = formData.get('email');
+    const password = formData.get('password');
+    const confirmPassword = formData.get('confirmPassword');
+
+    if (password !== confirmPassword) {
       setMessage({ type: 'error', text: 'Passwords do not match.' });
       return;
     }
+
     setLoading(true);
     try {
+      const generatedUsername = email.split('@')[0];
+
       const res = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: registerData.name,
-          username: registerData.email.split('@')[0],
-          email: registerData.email,
-          password: registerData.password,
+          name,
+          username: generatedUsername,
+          email,
+          password,
           role: 'Requester',
         }),
       });
@@ -114,6 +139,7 @@ function App() {
       localStorage.setItem('uep_user', JSON.stringify(data.user));
       setToken(data.token);
       setUser(data.user);
+      setMessage({ type: 'success', text: 'Account created successfully.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message });
     } finally {
@@ -125,7 +151,7 @@ function App() {
     <svg className="svg-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       {showPassword ? (
         <>
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z" />
           <circle cx="12" cy="12" r="3" />
         </>
       ) : (
@@ -137,6 +163,7 @@ function App() {
     </svg>
   );
 
+  // Welcome Screen
   if (!user || !token) {
     if (!showAuth) {
       return (
@@ -171,6 +198,7 @@ function App() {
       );
     }
 
+    // Auth Screen
     return (
       <div className="fullscreen-wrap">
         <div className="bg-photo" />
@@ -192,25 +220,42 @@ function App() {
 
             <h1 className="auth-title">{authMode === 'register' ? 'Register' : 'Login'}</h1>
 
+            {message.text && (
+              <div style={{
+                background: '#ffebee',
+                color: '#c62828',
+                padding: '10px 14px',
+                borderRadius: '10px',
+                fontSize: '0.85rem',
+                fontWeight: 'bold',
+                marginBottom: '14px',
+                textAlign: 'center',
+                width: '100%',
+                maxWidth: '360px'
+              }}>
+                {message.text}
+              </div>
+            )}
+
             {authMode === 'register' ? (
               <form onSubmit={handleRegister} className="form-clean" autoComplete="off">
                 <div className="input-pill">
                   <svg className="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
                   </svg>
-                  <input type="text" placeholder="Full Name" value={registerData.name} onChange={(e) => setRegisterData({ ...registerData, name: e.target.value })} required />
+                  <input type="text" name="name" placeholder="Full Name" required />
                 </div>
                 <div className="input-pill">
                   <svg className="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" />
                   </svg>
-                  <input type="email" placeholder="Email Address" value={registerData.email} onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })} required />
+                  <input type="email" name="email" placeholder="Email Address" required />
                 </div>
                 <div className="input-pill">
                   <svg className="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
-                  <input type={showPassword ? 'text' : 'password'} placeholder="Password" value={registerData.password} onChange={(e) => setRegisterData({ ...registerData, password: e.target.value })} required />
+                  <input type={showPassword ? 'text' : 'password'} name="password" placeholder="Password" required />
                   <button type="button" className="eye-btn" onClick={() => setShowPassword(!showPassword)}>
                     {renderEyeIcon()}
                   </button>
@@ -219,7 +264,7 @@ function App() {
                   <svg className="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
-                  <input type={showPassword ? 'text' : 'password'} placeholder="Re-enter password" value={registerData.confirmPassword} onChange={(e) => setRegisterData({ ...registerData, confirmPassword: e.target.value })} required />
+                  <input type={showPassword ? 'text' : 'password'} name="confirmPassword" placeholder="Re-enter password" required />
                   <button type="button" className="eye-btn" onClick={() => setShowPassword(!showPassword)}>
                     {renderEyeIcon()}
                   </button>
@@ -227,18 +272,18 @@ function App() {
                 <button type="submit" disabled={loading} className="btn-main-green">{loading ? 'Creating...' : 'Create Account'}</button>
               </form>
             ) : (
-              <form onSubmit={handleLogin} className="form-clean" autoComplete="off">
+              <form onSubmit={handleLogin} className="form-clean">
                 <div className="input-pill">
                   <svg className="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
                   </svg>
-                  <input type="text" placeholder="Username or Email Address" value={loginData.usernameOrEmail} onChange={(e) => setLoginData({ ...loginData, usernameOrEmail: e.target.value })} required />
+                  <input type="text" name="usernameOrEmail" placeholder="Username or Email Address" required />
                 </div>
                 <div className="input-pill">
                   <svg className="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
-                  <input type={showPassword ? 'text' : 'password'} placeholder="Password" value={loginData.password} onChange={(e) => setLoginData({ ...loginData, password: e.target.value })} required />
+                  <input type={showPassword ? 'text' : 'password'} name="password" placeholder="Password" required />
                   <button type="button" className="eye-btn" onClick={() => setShowPassword(!showPassword)}>
                     {renderEyeIcon()}
                   </button>
@@ -261,72 +306,186 @@ function App() {
     );
   }
 
+  const getHeaderTitle = () => {
+    switch (activeTab) {
+      case 'dashboard': return 'Live Dashboard Status';
+      case 'stockin': return 'Profiling (Stock-in)';
+      case 'stockout': return 'Seedling Distribution Control';
+      case 'request': return 'Seedling Request Control';
+      case 'history': return 'Transaction History';
+      case 'qrtag': return 'QR Tagging Station';
+      case 'settings': return 'Profile Settings Manager';
+      case 'staff': return 'Manage Staff Accounts';
+      default: return 'Admin Workspace';
+    }
+  };
+
   return (
-    <div className="admin-layout">
-      <aside className="admin-sidebar">
-        <div className="sidebar-top">
-          <div className="sidebar-logo-group">
-            <div className="sidebar-logo-circle">
-              <svg viewBox="0 0 64 64" fill="none" className="seedling-svg-small" xmlns="http://www.w3.org/2000/svg">
-                <path d="M32 50V34M32 34C32 24 44 20 44 20C44 20 44 32 32 34ZM32 38C26 38 20 32 20 26C20 26 30 26 32 38Z" stroke="#1d4530" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M22 52C26 50 38 50 42 52" stroke="#1d4530" strokeWidth="3" strokeLinecap="round"/>
-              </svg>
-            </div>
-            <div className="sidebar-logo-text">
-              <h3>UEP Clonal</h3>
-              <span>Seedling Management</span>
-            </div>
-          </div>
-
-          <nav className="sidebar-menu">
-            <button type="button" className={`menu-btn ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
-              <span className="menu-icon">🔲</span> Live Dashboard
-            </button>
-            <button type="button" className={`menu-btn ${activeTab === 'stockin' ? 'active' : ''}`} onClick={() => setActiveTab('stockin')}>
-              <span className="menu-icon">📦</span> Stock-In
-            </button>
-            <button type="button" className="menu-btn disabled-btn"><span className="menu-icon">📤</span> Stock-Out</button>
-            <button type="button" className="menu-btn disabled-btn"><span className="menu-icon">📝</span> Seedling Request</button>
-            <button type="button" className="menu-btn disabled-btn"><span className="menu-icon">🔄</span> Transaction History</button>
-            <button type="button" className="menu-btn disabled-btn"><span className="menu-icon">📱</span> QR Tagging Station</button>
-            <button type="button" className="menu-btn disabled-btn"><span className="menu-icon">⚙️</span> My Settings & Profile</button>
-            {user.role === 'Admin' && (
-              <button type="button" className="menu-btn disabled-btn"><span className="menu-icon">👥</span> Manage Staff Accounts</button>
-            )}
-          </nav>
-        </div>
-
-        <div className="sidebar-bottom">
-          <a href="#support" className="support-link">❓ Support</a>
-          <button type="button" className="btn-logout-red" onClick={logout}>➜] Log Out</button>
-        </div>
-      </aside>
+    <div className="admin-layout" onClick={() => {
+      setShowNotifDropdown(false);
+      setShowProfileDropdown(false);
+    }}>
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onLogout={logout}
+        isOpen={isSidebarOpen}
+        setIsOpen={setIsSidebarOpen}
+      />
 
       <main className="admin-main">
+        {/* Header with Notifications & Profile */}
         <header className="admin-header">
-          <h1 className="header-title">
-            {activeTab === 'dashboard' ? 'Live Dashboard Status' : 'Stock-In Management'}
-          </h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <button
+              type="button"
+              className="btn-open-sidebar"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsSidebarOpen(true);
+              }}
+              title="Open Menu"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+            <h1 className="header-title">{getHeaderTitle()}</h1>
+          </div>
+
           <div className="header-user-info">
-            <span className="bell-icon">🔔</span>
-            <div className="avatar-wrap">
-              <div className="avatar-neutral">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
+            {/* Notification Bell */}
+            <div className="header-action-container" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                className="btn-header-bell"
+                onClick={() => {
+                  setShowNotifDropdown(!showNotifDropdown);
+                  setShowProfileDropdown(false);
+                }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="svg-bell-top">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                 </svg>
+                <span className="notif-badge-pill">2</span>
+              </button>
+
+              {showNotifDropdown && (
+                <div className="header-dropdown-menu notif-dropdown">
+                  <div className="dropdown-head">
+                    <strong>Notifications</strong>
+                    <small>2 Pending</small>
+                  </div>
+                  <div className="dropdown-body">
+                    <div
+                      className="notif-item"
+                      onClick={() => {
+                        setActiveTab('dashboard');
+                        setShowNotifDropdown(false);
+                      }}
+                    >
+                      <span className="notif-dot orange" />
+                      <div>
+                        <strong>Low Stock Warning</strong>
+                        <p>Mangga has only 1 remaining stock left.</p>
+                      </div>
+                    </div>
+                    <div
+                      className="notif-item"
+                      onClick={() => {
+                        setActiveTab('request');
+                        setShowNotifDropdown(false);
+                      }}
+                    >
+                      <span className="notif-dot purple" />
+                      <div>
+                        <strong>New Seedling Request</strong>
+                        <p>Patrick Santos submitted a request for 20 Narra.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Profile Avatar with Dynamic Photo */}
+            <div className="header-action-container" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="avatar-wrap"
+                onClick={() => {
+                  setShowProfileDropdown(!showProfileDropdown);
+                  setShowNotifDropdown(false);
+                }}
+              >
+                <div className="avatar-neutral">
+                  {userAvatar ? (
+                    <img
+                      src={userAvatar}
+                      alt="Profile"
+                      style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                  )}
+                </div>
+                <span className="role-tag">{user.role || 'Admin'}</span>
               </div>
-              <span className="role-tag">{user.role || 'Admin'}</span>
+
+              {showProfileDropdown && (
+                <div className="header-dropdown-menu profile-dropdown">
+                  <div className="dropdown-head profile-head">
+                    <div className="avatar-neutral">
+                      {userAvatar ? (
+                        <img
+                          src={userAvatar}
+                          alt="Profile"
+                          style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                          <circle cx="12" cy="7" r="4" />
+                        </svg>
+                      )}
+                    </div>
+                    <div>
+                      <strong>{user.name || 'Admin'}</strong>
+                      <small>{user.email || 'admin@uep.edu.ph'}</small>
+                    </div>
+                  </div>
+                  <div className="dropdown-body">
+                    <button
+                      type="button"
+                      className="dropdown-btn"
+                      onClick={() => {
+                        setActiveTab('settings');
+                        setShowProfileDropdown(false);
+                      }}
+                    >
+                      My Profile & Settings
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>
 
-        {activeTab === 'dashboard' ? (
+        {activeTab === 'dashboard' && (
           <LiveDashboard
             batches={batches}
             onNavigateToStockIn={() => setActiveTab('stockin')}
+            onNavigateToRequests={() => setActiveTab('request')}
           />
-        ) : (
+        )}
+
+        {activeTab === 'stockin' && (
           <StockIn
             token={token}
             API_URL={API_URL}
@@ -334,8 +493,29 @@ function App() {
               fetchBatches();
               setActiveTab('dashboard');
             }}
-            onCancel={() => setActiveTab('dashboard')}
           />
+        )}
+
+        {activeTab === 'stockout' && <StockOut />}
+
+        {activeTab === 'request' && <SeedlingRequest />}
+
+        {activeTab === 'history' && <TransactionHistory />}
+
+        {activeTab === 'qrtag' && <QRTaggingStation batches={batches} />}
+
+        {activeTab === 'settings' && (
+          <MySettingsAndProfile
+            user={user}
+            onProfileUpdated={(updatedUser, newPhoto) => {
+              setUser(updatedUser);
+              if (newPhoto) setUserAvatar(newPhoto);
+            }}
+          />
+        )}
+
+        {activeTab === 'staff' && (
+          <ManageStaffAccounts user={user} token={token} API_URL={API_URL} />
         )}
       </main>
 

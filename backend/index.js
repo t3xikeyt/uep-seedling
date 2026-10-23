@@ -216,6 +216,61 @@ app.get('/api/auth/me', requireDatabase, authMiddleware, async (req, res) => {
   return res.json({ user: req.user });
 });
 
+// GET ALL USERS (PARA SA MANAGE STAFF ACCOUNTS)
+app.get('/api/users', requireDatabase, authMiddleware, async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT id, name, username, email, role, created_at FROM users ORDER BY id DESC');
+    return res.json(rows);
+  } catch (error) {
+    console.error('Fetch users error:', error);
+    return res.status(500).json({ message: 'Unable to fetch users.' });
+  }
+});
+
+// DELETE USER
+// UPDATE USER DETAILS (USERNAME, NAME, EMAIL, ROLE)
+app.put('/api/users/:id', requireDatabase, authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const { name, username, email } = req.body;
+
+  if (!name || !username || !email) {
+    return res.status(400).json({ message: 'Name, username, and email are required.' });
+  }
+
+  try {
+    // Check if new username or email is already taken by another user
+    const [existing] = await pool.query(
+      'SELECT id FROM users WHERE (username = ? OR email = ?) AND id != ? LIMIT 1',
+      [username, email, id]
+    );
+
+    if (existing.length) {
+      return res.status(409).json({ message: 'Username or email is already in use by another account.' });
+    }
+
+    await pool.query(
+      'UPDATE users SET name = ?, username = ?, email = ? WHERE id = ?',
+      [name, username, email, id]
+    );
+
+    const [rows] = await pool.query('SELECT id, name, username, email, role FROM users WHERE id = ?', [id]);
+    return res.json({ message: 'Staff details updated successfully.', user: rows[0] });
+  } catch (error) {
+    console.error('Update user error:', error);
+    return res.status(500).json({ message: 'Unable to update user.' });
+  }
+});
+app.delete('/api/users/:id', requireDatabase, authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM users WHERE id = ?', [id]);
+    return res.json({ message: 'User deleted successfully.' });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    return res.status(500).json({ message: 'Unable to delete user.' });
+  }
+});
+
 app.get('/api/batches', requireDatabase, authMiddleware, async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM batches ORDER BY id DESC');
