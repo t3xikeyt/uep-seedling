@@ -56,13 +56,43 @@ const mockPickupQueue = [
 function StockOut() {
   const [queue, setQueue] = useState(mockPickupQueue);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [rescheduleOrder, setRescheduleOrder] = useState(null);
+  const [newDate, setNewDate] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterSpecies, setFilterSpecies] = useState('All');
+  const [flashMsg, setFlashMsg] = useState('');
 
+  // 1. Confirm Handover
   const handleConfirmStockOut = () => {
     if (!selectedOrder) return;
     setQueue(queue.filter((item) => item.id !== selectedOrder.id));
+    setFlashMsg(`Order ${selectedOrder.order_ref} released and logged successfully.`);
     setSelectedOrder(null);
+    setTimeout(() => setFlashMsg(''), 3000);
+  };
+
+  // 2. Cancel / Unclaimed
+  const handleCancelOrder = (item) => {
+    if (window.confirm(`Mark ${item.order_ref} (${item.recipient_name}) as Cancelled / Unclaimed?`)) {
+      setQueue(queue.filter((q) => q.id !== item.id));
+      setFlashMsg(`Order ${item.order_ref} marked as Unclaimed/Cancelled.`);
+      setTimeout(() => setFlashMsg(''), 3000);
+    }
+  };
+
+  // 3. Save Rescheduled Date
+  const handleSaveReschedule = (e) => {
+    e.preventDefault();
+    if (!newDate) return;
+    setQueue(
+      queue.map((item) =>
+        item.id === rescheduleOrder.id ? { ...item, scheduled_pickup: newDate } : item
+      )
+    );
+    setFlashMsg(`Pickup for ${rescheduleOrder.order_ref} rescheduled to ${newDate}.`);
+    setRescheduleOrder(null);
+    setNewDate('');
+    setTimeout(() => setFlashMsg(''), 3000);
   };
 
   const filteredQueue = queue.filter((item) => {
@@ -82,6 +112,9 @@ function StockOut() {
 
   return (
     <div className="stockout-container">
+      {flashMsg && <div className="flash-message success">{flashMsg}</div>}
+
+      {/* Top Banner KPI Header */}
       <div className="stockout-header-card">
         <div className="stockout-title-meta">
           <div className="stockout-icon-box">
@@ -126,6 +159,7 @@ function StockOut() {
         </div>
       </div>
 
+      {/* Main Table Card */}
       <div className="stockout-table-card">
         <div className="stockout-toolbar">
           <div className="queue-title-badge">
@@ -165,13 +199,13 @@ function StockOut() {
             <thead>
               <tr>
                 <th>ORDER REF</th>
-                <th>RECIPIENT NAME & CONTACT</th>
-                <th>SEEDLINGS & QUANTITY</th>
+                <th>RECIPIENT & CONTACT</th>
+                <th>SEEDLINGS & QTY</th>
                 <th>ALLOCATED BATCH</th>
                 <th>PURPOSE</th>
                 <th>SCHEDULED PICKUP</th>
                 <th>STATUS</th>
-                <th>ACTION</th>
+                <th>ACTION CHOICES</th>
               </tr>
             </thead>
             <tbody>
@@ -205,23 +239,54 @@ function StockOut() {
                       </span>
                     </td>
                     <td>
-                      <button
-                        type="button"
-                        className="btn-confirm-release"
-                        onClick={() => setSelectedOrder(item)}
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="svg-btn-icon">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        Confirm Release
-                      </button>
+                      {/* ACTION CHOICES */}
+                      <div className="distribution-actions-group">
+                        <button
+                          type="button"
+                          className="btn-action-release"
+                          onClick={() => setSelectedOrder(item)}
+                          title="Confirm handover of seedlings"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="svg-btn-icon">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          Release
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn-action-reschedule"
+                          onClick={() => {
+                            setRescheduleOrder(item);
+                            setNewDate('');
+                          }}
+                          title="Change pickup date"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="svg-btn-icon">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                          </svg>
+                          Date
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn-action-cancel"
+                          onClick={() => handleCancelOrder(item)}
+                          title="Cancel or mark unclaimed"
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
                   <td colSpan="8" className="empty-table-msg">
-                    No orders ready for pickup.
+                    No orders waiting in queue.
                   </td>
                 </tr>
               )}
@@ -230,9 +295,10 @@ function StockOut() {
         </div>
       </div>
 
+      {/* CONFIRMATION HANDOVER MODAL */}
       {selectedOrder && (
-        <div className="modal-backdrop">
-          <div className="modal-card">
+        <div className="modal-backdrop" onClick={() => setSelectedOrder(null)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-header-left">
                 <div className="modal-icon-badge">
@@ -291,7 +357,7 @@ function StockOut() {
 
               <div>
                 <small>HANDOVER LOCATION</small>
-                <strong>UEP Clonal Nursery</strong>
+                <strong>UEP Clonal Facility</strong>
               </div>
 
               <div className="modal-reminder-box">
@@ -325,6 +391,59 @@ function StockOut() {
                 Confirm & Complete Stock-Out
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* RESCHEDULE MODAL */}
+      {rescheduleOrder && (
+        <div className="modal-backdrop" onClick={() => setRescheduleOrder(null)}>
+          <div className="modal-card password-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Reschedule Pickup Date</h3>
+              <button
+                type="button"
+                className="btn-close-modal"
+                onClick={() => setRescheduleOrder(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveReschedule} className="stockin-form">
+              <div className="form-group">
+                <label>Order Reference</label>
+                <input type="text" value={rescheduleOrder.order_ref} disabled className="role-input-disabled" />
+              </div>
+
+              <div className="form-group">
+                <label>Recipient Name</label>
+                <input type="text" value={rescheduleOrder.recipient_name} disabled className="role-input-disabled" />
+              </div>
+
+              <div className="form-group">
+                <label>New Scheduled Date</label>
+                <input
+                  type="date"
+                  value={newDate}
+                  onChange={(e) => setNewDate(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="modal-footer-actions">
+                <button
+                  type="button"
+                  className="btn-modal-cancel"
+                  onClick={() => setRescheduleOrder(null)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-modal-confirm">
+                  Save New Date
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

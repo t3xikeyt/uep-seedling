@@ -1,12 +1,11 @@
 import { useState } from 'react';
 
-function Sidebar({ activeTab, setActiveTab, onLogout, isOpen, setIsOpen }) {
+function Sidebar({ activeTab, setActiveTab, onLogout, isOpen, setIsOpen, user }) {
   const [showSupportModal, setShowSupportModal] = useState(false);
 
-  // Kung sarado ang sidebar at sarado ang modal, WALANG ILALABAS NA ANOMANG BACKDROP O BLUR!
   if (!isOpen && !showSupportModal) return null;
 
-  const menuItems = [
+  const baseMenuItems = [
     {
       id: 'dashboard',
       label: 'Live Dashboard',
@@ -66,27 +65,27 @@ function Sidebar({ activeTab, setActiveTab, onLogout, isOpen, setIsOpen }) {
       label: 'My Settings & Profile',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-        </svg>
-      ),
-    },
-    {
-      id: 'staff',
-      label: 'Manage Staff Accounts',
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0 2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
         </svg>
       ),
     },
   ];
 
+  const adminOnlyItem = {
+    id: 'staff',
+    label: 'Manage Staff Accounts',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
+  };
+
+  const menuItems = user?.role === 'Admin' ? [...baseMenuItems, adminOnlyItem] : baseMenuItems;
+
   return (
     <>
-      {/* 1. Backdrop para sa SIDEBAR lang kapag nakabukas */}
-      {isOpen && (
-        <div className="sidebar-backdrop" onClick={() => setIsOpen(false)} />
-      )}
+      {isOpen && <div className="sidebar-backdrop" onClick={() => setIsOpen(false)} />}
 
       {isOpen && (
         <aside className="custom-proto-sidebar">
@@ -136,7 +135,7 @@ function Sidebar({ activeTab, setActiveTab, onLogout, isOpen, setIsOpen }) {
               type="button"
               className="sidebar-support-clean-btn"
               onClick={() => {
-                setIsOpen(false); // Isara ang sidebar para lumabas ang modal nang malinaw
+                setIsOpen(false);
                 setShowSupportModal(true);
               }}
             >
@@ -156,7 +155,7 @@ function Sidebar({ activeTab, setActiveTab, onLogout, isOpen, setIsOpen }) {
         </aside>
       )}
 
-      {/* 2. Backdrop para sa SUPPORT MODAL lang kapag nakabukas */}
+      {/* CAPSTONE SUPPORT & USER GUIDE HELPDESK */}
       {showSupportModal && (
         <div className="modal-backdrop" onClick={() => setShowSupportModal(false)}>
           <div className="modal-card support-modal-card" onClick={(e) => e.stopPropagation()}>
@@ -170,7 +169,7 @@ function Sidebar({ activeTab, setActiveTab, onLogout, isOpen, setIsOpen }) {
                   </svg>
                 </div>
                 <div>
-                  <h3>System Support & Research Helpdesk</h3>
+                  <h3>System Guide & Helpdesk</h3>
                   <p>UEP Clonal Seedling Management Information System</p>
                 </div>
               </div>
@@ -184,24 +183,59 @@ function Sidebar({ activeTab, setActiveTab, onLogout, isOpen, setIsOpen }) {
             </div>
 
             <div className="modal-body-grid support-body-content">
+              {/* STEP-BY-STEP SIMPLE USER INSTRUCTIONS */}
               <div className="support-section">
-                <h4>System FAQs</h4>
-                <div className="support-faq-item">
-                  <strong>How to record seedling batch?</strong>
-                  <p>Open the sidebar and navigate to <em>Stock-In</em>. Enter the species, category, origin, and initial count.</p>
-                </div>
-                <div className="support-faq-item">
-                  <strong>How to approve requests?</strong>
-                  <p>Under <em>Seedling Request</em>, view submitted applications and select <em>Approve</em> or <em>Reject</em>.</p>
+                <h4>How to Use the System (Quick Guide)</h4>
+                <div className="guide-steps-list">
+                  <div className="guide-step-item">
+                    <span className="step-num-badge">1</span>
+                    <div>
+                      <strong>Add Seedlings (Stock-In)</strong>
+                      <p>Open the menu and click <em>Stock-In</em>. Enter the tree species, category, origin, and quantity to add stock.</p>
+                    </div>
+                  </div>
+
+                  <div className="guide-step-item">
+                    <span className="step-num-badge">2</span>
+                    <div>
+                      <strong>Print QR Tags (Tagging Station)</strong>
+                      <p>Go to <em>QR Tagging Station</em>. Select any batch and click <em>Print Tag</em> to place QR labels on plant pots.</p>
+                    </div>
+                  </div>
+
+                  <div className="guide-step-item">
+                    <span className="step-num-badge">3</span>
+                    <div>
+                      <strong>Handle Requests (Seedling Request)</strong>
+                      <p>Review submitted seedling requests. Click <em>Approve</em> if seedlings are ready, or <em>Reject</em> if unavailable.</p>
+                    </div>
+                  </div>
+
+                  <div className="guide-step-item">
+                    <span className="step-num-badge">4</span>
+                    <div>
+                      <strong>Hand Over Plants (Stock-Out)</strong>
+                      <p>When the recipient picks up their order, click <em>Release</em> to deduct the seedlings from inventory.</p>
+                    </div>
+                  </div>
+
+                  <div className="guide-step-item">
+                    <span className="step-num-badge">5</span>
+                    <div>
+                      <strong>Check Logs & Print (Live Dashboard & History)</strong>
+                      <p>Monitor real-time seedling stock, track all movements in <em>Transaction History</em>, and click <em>Print Report</em> for paper documents.</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
+              {/* PROJECT INFO */}
               <div className="support-section support-credits-box">
                 <h4>Project Information</h4>
                 <p><strong>Capstone Title:</strong> Web-Based Seedling Management System</p>
                 <p><strong>Institution:</strong> University of Eastern Philippines (UEP)</p>
-                <p><strong>Department:</strong> College of Science / IT Department</p>
-                <p><strong>Nursery Office:</strong> UEP Clonal Core Nursery Facility</p>
+                <p><strong>Department:</strong> College of Science / Information Technology</p>
+                <p><strong>Facility:</strong> UEP Clonal Core Facility, Catarman, Northern Samar</p>
               </div>
             </div>
 
@@ -211,7 +245,7 @@ function Sidebar({ activeTab, setActiveTab, onLogout, isOpen, setIsOpen }) {
                 className="btn-modal-confirm"
                 onClick={() => setShowSupportModal(false)}
               >
-                Close Helpdesk
+                Got it, Close Guide
               </button>
             </div>
           </div>

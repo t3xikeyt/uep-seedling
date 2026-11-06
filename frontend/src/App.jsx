@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
 import './styles.css';
 
-// Admin Modules
-import Sidebar from './pages/Admin/Sidebar';
-import LiveDashboard from './pages/Admin/LiveDashboard';
-import StockIn from './pages/Admin/StockIn';
-import StockOut from './pages/Admin/StockOut';
-import SeedlingRequest from './pages/Admin/SeedlingRequest';
-import TransactionHistory from './pages/Admin/TransactionHistory';
-import QRTaggingStation from './pages/Admin/QRTaggingStation';
-import MySettingsAndProfile from './pages/Admin/MySettingsAndProfile';
-import ManageStaffAccounts from './pages/Admin/ManageStaffAccounts';
+// Admin & Staff Unified Modules
+import Sidebar from './pages/Admin&Staff/Sidebar';
+import LiveDashboard from './pages/Admin&Staff/LiveDashboard';
+import StockIn from './pages/Admin&Staff/StockIn';
+import StockOut from './pages/Admin&Staff/StockOut';
+import SeedlingRequest from './pages/Admin&Staff/SeedlingRequest';
+import TransactionHistory from './pages/Admin&Staff/TransactionHistory';
+import QRTaggingStation from './pages/Admin&Staff/QRTaggingStation';
+import MySettingsAndProfile from './pages/Admin&Staff/MySettingsAndProfile';
+import ManageStaffAccounts from './pages/Admin&Staff/ManageStaffAccounts';
+import RequesterPortal from './pages/Public/RequesterPortal';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -29,7 +30,18 @@ function App() {
     const savedUser = localStorage.getItem('uep_user');
     return savedUser ? JSON.parse(savedUser) : null;
   });
-  const [userAvatar, setUserAvatar] = useState(localStorage.getItem('uep_user_avatar') || null);
+
+  // Unique avatar strictly bound to current user ID
+  const [userAvatar, setUserAvatar] = useState(null);
+
+  useEffect(() => {
+    if (user && user.id) {
+      const savedPhoto = localStorage.getItem(`uep_user_avatar_${user.id}`);
+      setUserAvatar(savedPhoto || null);
+    } else {
+      setUserAvatar(null);
+    }
+  }, [user]);
 
   const [batches, setBatches] = useState([]);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -47,6 +59,7 @@ function App() {
     localStorage.removeItem('uep_user');
     setToken('');
     setUser(null);
+    setUserAvatar(null);
     setBatches([]);
     setShowAuth(false);
     setIsSidebarOpen(false);
@@ -93,6 +106,11 @@ function App() {
       localStorage.setItem('uep_user', JSON.stringify(data.user));
       setToken(data.token);
       setUser(data.user);
+
+      // Load avatar strictly for this specific logged-in user
+      const userPhoto = localStorage.getItem(`uep_user_avatar_${data.user.id}`);
+      setUserAvatar(userPhoto || null);
+
       setMessage({ type: 'success', text: 'Login successful.' });
     } catch (error) {
       setMessage({ type: 'error', text: error.message });
@@ -305,6 +323,9 @@ function App() {
       </div>
     );
   }
+  if (user && user.role === 'Requester') {
+    return <RequesterPortal user={user} onLogout={logout} />;
+  }
 
   const getHeaderTitle = () => {
     switch (activeTab) {
@@ -316,7 +337,7 @@ function App() {
       case 'qrtag': return 'QR Tagging Station';
       case 'settings': return 'Profile Settings Manager';
       case 'staff': return 'Manage Staff Accounts';
-      default: return 'Admin Workspace';
+      default: return 'Work Station';
     }
   };
 
@@ -331,6 +352,7 @@ function App() {
         onLogout={logout}
         isOpen={isSidebarOpen}
         setIsOpen={setIsSidebarOpen}
+        user={user}
       />
 
       <main className="admin-main">
@@ -411,7 +433,7 @@ function App() {
               )}
             </div>
 
-            {/* Profile Avatar with Dynamic Photo */}
+            {/* Profile Avatar Strictly Tied to Current User */}
             <div className="header-action-container" onClick={(e) => e.stopPropagation()}>
               <div
                 className="avatar-wrap"
@@ -434,7 +456,7 @@ function App() {
                     </svg>
                   )}
                 </div>
-                <span className="role-tag">{user.role || 'Admin'}</span>
+                <span className="role-tag">{user?.role || 'Staff'}</span>
               </div>
 
               {showProfileDropdown && (
@@ -455,8 +477,8 @@ function App() {
                       )}
                     </div>
                     <div>
-                      <strong>{user.name || 'Admin'}</strong>
-                      <small>{user.email || 'admin@uep.edu.ph'}</small>
+                      <strong>{user?.name || 'User'}</strong>
+                      <small>{user?.email}</small>
                     </div>
                   </div>
                   <div className="dropdown-body">
@@ -504,18 +526,23 @@ function App() {
 
         {activeTab === 'qrtag' && <QRTaggingStation batches={batches} />}
 
+        {/* SETTINGS WITH STRICT USER-ISOLATED AVATAR UPDATES */}
         {activeTab === 'settings' && (
           <MySettingsAndProfile
             user={user}
             onProfileUpdated={(updatedUser, newPhoto) => {
               setUser(updatedUser);
-              if (newPhoto) setUserAvatar(newPhoto);
+              if (newPhoto && updatedUser?.id) {
+                localStorage.setItem(`uep_user_avatar_${updatedUser.id}`, newPhoto);
+                setUserAvatar(newPhoto);
+              }
             }}
           />
         )}
 
-        {activeTab === 'staff' && (
-          <ManageStaffAccounts user={user} token={token} API_URL={API_URL} />
+        {/* ADMIN ONLY ACCESS */}
+        {activeTab === 'staff' && user?.role === 'Admin' && (
+          <ManageStaffAccounts token={token} API_URL={API_URL} />
         )}
       </main>
 
