@@ -92,9 +92,9 @@ async function initializeDatabase() {
     const [userRows] = await pool.query('SELECT COUNT(*) AS total FROM users');
     if (userRows[0].total === 0) {
       const defaultUsers = [
-        { username: 'admin', email: 'admin@uep.edu.ph', password: bcrypt.hashSync('123', 10), role: 'Admin', name: 'Clonal Manager' },
-        { username: 'staff', email: 'staff@uep.edu.ph', password: bcrypt.hashSync('123', 10), role: 'Staff', name: 'Patrick Seguros' },
-        { username: 'requester', email: 'requester@uep.edu.ph', password: bcrypt.hashSync('123', 10), role: 'Requester', name: 'Trixie Agonias' },
+        { username: 'admin', email: 'admin@uep.edu.ph', password: bcrypt.hashSync('123456', 10), role: 'Admin', name: 'Clonal Manager' },
+        { username: 'staff', email: 'staff@uep.edu.ph', password: bcrypt.hashSync('123456', 10), role: 'Staff', name: 'Patrick Seguros' },
+        { username: 'requester', email: 'requester@uep.edu.ph', password: bcrypt.hashSync('123456', 10), role: 'Requester', name: 'Trixie Agonias' },
       ];
 
       for (const user of defaultUsers) {
@@ -139,6 +139,16 @@ app.get('/api/health', async (req, res) => {
   });
 });
 
+// app.get('/api/reset-passwords', requireDatabase, async (req, res) => {
+//   try {
+//     const newHash = await bcrypt.hash('123456', 10);
+//     await pool.query('UPDATE users SET password = ?', [newHash]);
+//     return res.send('SUCCESS! All passwords have been reset to: 123456');
+//   } catch (error) {
+//     return res.status(500).send(error.message);
+//   }
+// });
+
 app.post('/api/auth/login', requireDatabase, async (req, res) => {
   const { usernameOrEmail, password } = req.body;
 
@@ -182,6 +192,11 @@ app.post('/api/auth/register', requireDatabase, async (req, res) => {
     return res.status(400).json({ message: 'All fields are required.' });
   }
 
+  // 6 CHARACTERS MINIMUM SECURITY RULE
+  if (password.length < 6) {
+    return res.status(400).json({ message: 'Password must be at least 6 characters long.' });
+  }
+
   try {
     const [existing] = await pool.query(
       'SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1',
@@ -216,7 +231,6 @@ app.get('/api/auth/me', requireDatabase, authMiddleware, async (req, res) => {
   return res.json({ user: req.user });
 });
 
-// GET ALL USERS (PARA SA MANAGE STAFF ACCOUNTS)
 app.get('/api/users', requireDatabase, authMiddleware, async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT id, name, username, email, role, created_at FROM users ORDER BY id DESC');
@@ -227,8 +241,6 @@ app.get('/api/users', requireDatabase, authMiddleware, async (req, res) => {
   }
 });
 
-// DELETE USER
-// UPDATE USER DETAILS (USERNAME, NAME, EMAIL, ROLE)
 app.put('/api/users/:id', requireDatabase, authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { name, username, email } = req.body;
@@ -238,7 +250,6 @@ app.put('/api/users/:id', requireDatabase, authMiddleware, async (req, res) => {
   }
 
   try {
-    // Check if new username or email is already taken by another user
     const [existing] = await pool.query(
       'SELECT id FROM users WHERE (username = ? OR email = ?) AND id != ? LIMIT 1',
       [username, email, id]
@@ -260,6 +271,7 @@ app.put('/api/users/:id', requireDatabase, authMiddleware, async (req, res) => {
     return res.status(500).json({ message: 'Unable to update user.' });
   }
 });
+
 app.delete('/api/users/:id', requireDatabase, authMiddleware, async (req, res) => {
   const { id } = req.params;
   try {

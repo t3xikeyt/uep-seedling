@@ -11,6 +11,8 @@ import TransactionHistory from './pages/Admin&Staff/TransactionHistory';
 import QRTaggingStation from './pages/Admin&Staff/QRTaggingStation';
 import MySettingsAndProfile from './pages/Admin&Staff/MySettingsAndProfile';
 import ManageStaffAccounts from './pages/Admin&Staff/ManageStaffAccounts';
+
+// Public / Requester Module
 import RequesterPortal from './pages/Public/RequesterPortal';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -31,7 +33,6 @@ function App() {
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  // Unique avatar strictly bound to current user ID
   const [userAvatar, setUserAvatar] = useState(null);
 
   useEffect(() => {
@@ -44,6 +45,7 @@ function App() {
   }, [user]);
 
   const [batches, setBatches] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [loading, setLoading] = useState(false);
 
@@ -61,8 +63,12 @@ function App() {
     setUser(null);
     setUserAvatar(null);
     setBatches([]);
+    setRequests([]);
+    setShowNotifDropdown(false);
+    setShowProfileDropdown(false);
     setShowAuth(false);
     setIsSidebarOpen(false);
+    setActiveTab('dashboard');
   };
 
   const fetchBatches = async () => {
@@ -73,14 +79,31 @@ function App() {
       });
       if (!res.ok) throw new Error('Unable to fetch batches.');
       const data = await res.json();
-      setBatches(data);
+      setBatches(Array.isArray(data) ? data : []);
     } catch (error) {
       setMessage({ type: 'error', text: error.message });
     }
   };
 
+  const fetchRequests = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/requests`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setRequests(Array.isArray(data) ? data : []);
+    } catch {
+      // Optional endpoint if /api/requests is not yet added
+    }
+  };
+
   useEffect(() => {
-    if (token) fetchBatches();
+    if (token) {
+      fetchBatches();
+      fetchRequests();
+    }
   }, [token]);
 
   const handleLogin = async (event) => {
@@ -106,8 +129,8 @@ function App() {
       localStorage.setItem('uep_user', JSON.stringify(data.user));
       setToken(data.token);
       setUser(data.user);
+      setActiveTab('dashboard');
 
-      // Load avatar strictly for this specific logged-in user
       const userPhoto = localStorage.getItem(`uep_user_avatar_${data.user.id}`);
       setUserAvatar(userPhoto || null);
 
@@ -129,6 +152,13 @@ function App() {
     const password = formData.get('password');
     const confirmPassword = formData.get('confirmPassword');
 
+    // 1. Password minimum length check (6 characters)
+    if (password.length < 6) {
+      setMessage({ type: 'error', text: 'Password must be at least 6 characters long.' });
+      return;
+    }
+
+    // 2. Confirm password match check
     if (password !== confirmPassword) {
       setMessage({ type: 'error', text: 'Passwords do not match.' });
       return;
@@ -181,7 +211,7 @@ function App() {
     </svg>
   );
 
-  // Welcome Screen
+  // 1. WELCOME & AUTH SCREENS
   if (!user || !token) {
     if (!showAuth) {
       return (
@@ -216,7 +246,6 @@ function App() {
       );
     }
 
-    // Auth Screen
     return (
       <div className="fullscreen-wrap">
         <div className="bg-photo" />
@@ -273,7 +302,7 @@ function App() {
                   <svg className="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
-                  <input type={showPassword ? 'text' : 'password'} name="password" placeholder="Password" required />
+                  <input type={showPassword ? 'text' : 'password'} name="password" minLength={6} placeholder="Password (min. 6 characters)" required />
                   <button type="button" className="eye-btn" onClick={() => setShowPassword(!showPassword)}>
                     {renderEyeIcon()}
                   </button>
@@ -282,7 +311,7 @@ function App() {
                   <svg className="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
-                  <input type={showPassword ? 'text' : 'password'} name="confirmPassword" placeholder="Re-enter password" required />
+                  <input type={showPassword ? 'text' : 'password'} name="confirmPassword" minLength={6} placeholder="Re-enter password" required />
                   <button type="button" className="eye-btn" onClick={() => setShowPassword(!showPassword)}>
                     {renderEyeIcon()}
                   </button>
@@ -323,10 +352,13 @@ function App() {
       </div>
     );
   }
+
+  // 2. REQUESTER PORTAL VIEW
   if (user && user.role === 'Requester') {
     return <RequesterPortal user={user} onLogout={logout} />;
   }
 
+  // 3. ADMIN & STAFF WORKSPACE
   const getHeaderTitle = () => {
     switch (activeTab) {
       case 'dashboard': return 'Live Dashboard Status';
@@ -341,11 +373,22 @@ function App() {
     }
   };
 
+  const lowStockBatches = batches.filter(
+    (b) => Number(b.current_stock) > 0 && Number(b.current_stock) <= 10
+  );
+  const pendingRequests = requests.filter(
+    (r) => String(r.status || '').toLowerCase() === 'pending'
+  );
+  const totalNotifications = lowStockBatches.length + pendingRequests.length;
+
   return (
-    <div className="admin-layout" onClick={() => {
-      setShowNotifDropdown(false);
-      setShowProfileDropdown(false);
-    }}>
+    <div
+      className="admin-layout"
+      onClick={() => {
+        setShowNotifDropdown(false);
+        setShowProfileDropdown(false);
+      }}
+    >
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -356,7 +399,6 @@ function App() {
       />
 
       <main className="admin-main">
-        {/* Header with Notifications & Profile */}
         <header className="admin-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <button
@@ -378,8 +420,11 @@ function App() {
           </div>
 
           <div className="header-user-info">
-            {/* Notification Bell */}
-            <div className="header-action-container" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="header-action-container"
+              style={{ position: 'relative' }}
+              onClick={(e) => e.stopPropagation()}
+            >
               <button
                 type="button"
                 className="btn-header-bell"
@@ -392,49 +437,107 @@ function App() {
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                   <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                 </svg>
-                <span className="notif-badge-pill">2</span>
+                {totalNotifications > 0 && (
+                  <span className="notif-badge-pill">{totalNotifications}</span>
+                )}
               </button>
 
               {showNotifDropdown && (
-                <div className="header-dropdown-menu notif-dropdown">
+                <div
+                  className="header-dropdown-menu notif-dropdown"
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    zIndex: 999999,
+                    pointerEvents: 'auto',
+                  }}
+                >
                   <div className="dropdown-head">
                     <strong>Notifications</strong>
-                    <small>2 Pending</small>
+                    <small>{totalNotifications} Pending</small>
                   </div>
-                  <div className="dropdown-body">
-                    <div
-                      className="notif-item"
-                      onClick={() => {
-                        setActiveTab('dashboard');
-                        setShowNotifDropdown(false);
-                      }}
-                    >
-                      <span className="notif-dot orange" />
-                      <div>
-                        <strong>Low Stock Warning</strong>
-                        <p>Mangga has only 1 remaining stock left.</p>
+                  <div className="dropdown-body" style={{ display: 'flex', flexDirection: 'column', padding: '6px 0' }}>
+                    {lowStockBatches.map((batch) => (
+                      <button
+                        key={`low-${batch.id || batch.batch_id}`}
+                        type="button"
+                        className="notif-item"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '10px',
+                          padding: '10px 16px',
+                          width: '100%',
+                          background: '#ffffff',
+                          border: 'none',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveTab('stockin');
+                          setShowNotifDropdown(false);
+                        }}
+                      >
+                        <span className="notif-dot orange" />
+                        <div>
+                          <strong>Low Stock Warning</strong>
+                          <p>
+                            {batch.species_name} has only {batch.current_stock} remaining stock left.
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+
+                    {pendingRequests.map((reqItem) => (
+                      <button
+                        key={`req-${reqItem.id}`}
+                        type="button"
+                        className="notif-item"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '10px',
+                          padding: '10px 16px',
+                          width: '100%',
+                          background: '#ffffff',
+                          border: 'none',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveTab('request');
+                          setShowNotifDropdown(false);
+                        }}
+                      >
+                        <span className="notif-dot purple" />
+                        <div>
+                          <strong>New Seedling Request</strong>
+                          <p>
+                            {reqItem.requester_name || reqItem.name || 'Someone'} submitted a request for{' '}
+                            {reqItem.quantity} {reqItem.species_name || 'seedlings'}.
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+
+                    {totalNotifications === 0 && (
+                      <div style={{ padding: '12px 16px' }}>
+                        <p style={{ margin: 0 }}>No pending notifications right now.</p>
                       </div>
-                    </div>
-                    <div
-                      className="notif-item"
-                      onClick={() => {
-                        setActiveTab('request');
-                        setShowNotifDropdown(false);
-                      }}
-                    >
-                      <span className="notif-dot purple" />
-                      <div>
-                        <strong>New Seedling Request</strong>
-                        <p>Patrick Santos submitted a request for 20 Narra.</p>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Profile Avatar Strictly Tied to Current User */}
-            <div className="header-action-container" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="header-action-container"
+              style={{ position: 'relative' }}
+              onClick={(e) => e.stopPropagation()}
+            >
               <div
                 className="avatar-wrap"
                 onClick={() => {
@@ -460,7 +563,15 @@ function App() {
               </div>
 
               {showProfileDropdown && (
-                <div className="header-dropdown-menu profile-dropdown">
+                <div
+                  className="header-dropdown-menu profile-dropdown"
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    zIndex: 999999,
+                  }}
+                >
                   <div className="dropdown-head profile-head">
                     <div className="avatar-neutral">
                       {userAvatar ? (
@@ -526,7 +637,6 @@ function App() {
 
         {activeTab === 'qrtag' && <QRTaggingStation batches={batches} />}
 
-        {/* SETTINGS WITH STRICT USER-ISOLATED AVATAR UPDATES */}
         {activeTab === 'settings' && (
           <MySettingsAndProfile
             user={user}
@@ -540,7 +650,6 @@ function App() {
           />
         )}
 
-        {/* ADMIN ONLY ACCESS */}
         {activeTab === 'staff' && user?.role === 'Admin' && (
           <ManageStaffAccounts token={token} API_URL={API_URL} />
         )}

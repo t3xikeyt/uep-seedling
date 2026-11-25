@@ -134,9 +134,16 @@ function RequesterPortal({ user, onLogout }) {
   };
 
   return (
-    <div className="requester-portal-shell">
+    <div className="requester-portal-shell" style={{ overflowX: 'clip' }}>
       {/* TOP NAVIGATION BAR */}
-      <header className="requester-navbar">
+      <header
+        className="requester-navbar"
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 90,
+        }}
+      >
         <div className="req-nav-brand">
           <div className="req-brand-badge">
             <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
